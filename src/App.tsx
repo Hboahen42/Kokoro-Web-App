@@ -1,10 +1,14 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Play, Pause, Square, Volume2, Settings, Download, Upload, X } from 'lucide-react';
 import './index.css';
+import * as pdfjsLib from 'pdfjs-dist';
+import WorkerSrc from 'pdfjs-dist/build/pdf.worker.mjs?url';
+pdfjsLib.GlobalWorkerOptions.workerSrc = WorkerSrc;
 
+export default function KokoroTTS() {
   // Text input state
   const [text, setText] = useState('');
-  const [fileName, setFileName] = useState('');
+  const [fileName, setFileName] = useState<string | null>(null);
 
   // Audio playback state
   const [isPlaying, setIsPlaying] = useState(false);
@@ -25,6 +29,7 @@ import './index.css';
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const audioUrlRef =  useRef<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+
 
   // Common Kokoro TTS voices
   const voices = [
@@ -175,6 +180,81 @@ import './index.css';
     return `${mins}:${secs.toString().padStart(2,'0')}`;
   };
 
+  // Trigger input ref
+  const triggerFileUpload = () => {
+    fileInputRef.current?.click();
+  }
+
+  // Clear uploaded file
+  const clearFile = () => {
+    setFileName(null);
+    setText('');
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  }
+
+  // Handle PDF file upload and extract text
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      setError('File size must be less than 5MB');
+      return;
+    }
+
+    try {
+      if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
+        setIsLoading(true);
+        const arrayBuffer = await file.arrayBuffer();
+
+        // Use pdfjs to extract text from pdf
+        const pdf =  await pdfjsLib.getDocument({data: arrayBuffer}).promise;
+
+        let extractedText = '';
+
+        // Extract text from each page
+        for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+          const page = await pdf.getPage(pageNum);
+          const textContent = await page.getTextContent();
+          const pageText = textContent.items.map((item: any) => item.str).join(' ');
+          extractedText += `\n${pageText}`;
+        }
+
+        setText(extractedText.trim());
+        setFileName(file.name);
+        setError('');
+        setIsLoading(false);
+        return;
+      }
+
+      const validTypes = [
+        'text/plain',
+        'text/markdown',
+        'application/json',
+        'text/html',
+        'text/csv'
+      ]
+      
+      if (!validTypes.includes(file.type) && !file.name.match(/\.(txt|md|json|html|csv)$/i)) {
+        setError('Please upload a text or PDF file (.txt, .md, .json, .html, .csv, .pdf)');
+        return;
+      }
+
+      // Handle text files
+      const content = await file.text();
+      setText(content);
+      setFileName(file.name);
+      setError('');
+
+    } catch (err) {
+      setError("Failed to read file or extract text from pdf");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 p-4">
       <div className="max-w-4xl mx-auto">
@@ -191,9 +271,39 @@ import './index.css';
         <div className="bg-white rounded-2xl shadow-xl p-6 mb-8">
           {/* Text Input */}
           <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Enter Text
-            </label>
+            <div className='flex items-center justify-between mb-2'>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Enter Text
+              </label>
+              <div className="flex items-center gap-2">
+                {fileName && (
+                  <div className="flex items-center gap-2 px-3 py-1 bg-purple-50 rounded-lg text-sm text-purple-700">
+                    <span className="truncate max-w-[150px]">{fileName}</span>
+                    <button 
+                      onClick={clearFile}
+                      className='hover:bg-purple-100 rounded p-0.5'
+                      title='Clear File'>
+                        <X className='w-4 h-6' />
+                    </button>
+                  </div>
+                )}
+              <button
+                onClick={triggerFileUpload}
+                className='flex items-center gap-2 px-2 py-1 text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors'
+                title='Upload File'>
+                  <Upload className="w-4 h-4"/>
+                  Upload File
+                </button>
+                <input
+                  ref={fileInputRef}
+                  type='file'
+                  accept='txt,.md,.json,.html,.csv,.pdf,text/*,application/pdf'
+                  onChange={handleFileUpload}
+                  title='File Input Ref'
+                  className='hidden'
+                />
+              </div>
+            </div>
             <textarea
               value={text}
               onChange={(e) => setText(e.target.value)}
@@ -343,6 +453,7 @@ import './index.css';
             <li>Update the Server URL in settings if your server uses a different port</li>
             <li>Your server should have a POST endpoint at <code className="bg-gray-100 px-1 py-0.5 rounded">/api/tts</code> that accepts JSON with text, voice, and speed parameters</li>
             <li>The endpoint should return audio data (WAV format recommended)</li>
+            <li>You can type text directly, paste it, or upload a text file (.txt, .md, .json, .html, .csv) or PDF document</li>
           </ol>
         </div>
       </div>
