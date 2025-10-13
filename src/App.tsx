@@ -2,9 +2,9 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Play, Pause, Square, Volume2, Settings, Download, Upload, X } from 'lucide-react';
 import './index.css';
 
-export default function KokoroTTS() {
   // Text input state
   const [text, setText] = useState('');
+  const [fileName, setFileName] = useState('');
 
   // Audio playback state
   const [isPlaying, setIsPlaying] = useState(false);
