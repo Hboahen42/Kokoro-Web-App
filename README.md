@@ -19,7 +19,7 @@ This web app provides a simple, elegant interface built with **React + TypeScrip
 
 ### 1. Clone the repository
 ```bash
-git clone https://github.com/yourusername/kokoro-tts-web.git
+git clone https://github.com/Hboahen42/tts.git
 cd kokoro-tts-web
 ```
 
@@ -31,15 +31,23 @@ npm install
 ### 3. Install and configure TailwindCSS
 If not already set up:
 ```bash
-npm install -D tailwindcss postcss autoprefixer
-npx tailwindcss init -p
+npm install tailwindcss @tailwindcss/vite
+```
+Add the @tailwindcss/vite plugin to your Vite configuration (vite.config.ts).
+```js
+import { defineConfig } from 'vite'
+import tailwindcss from '@tailwindcss/vite'
+
+export default defineConfig({
+  plugins: [
+    tailwindcss(),
+  ],
+})
 ```
 
 Then in your `src/index.css`:
 ```css
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 ```
 
 ---
@@ -79,27 +87,9 @@ Returned output should be audio data (WAV recommended).
 
 ---
 
-## 🧱 Folder Structure
-
-```
-kokoro-tts-web/
-├── src/
-│   ├── App.tsx          # Main React component
-│   ├── index.tsx        # Entry point
-│   ├── index.css        # Tailwind styles
-│   └── components/      # UI components
-├── public/
-│   └── favicon.ico
-├── package.json
-├── tailwind.config.js
-└── README.md
-```
-
----
-
 ## 🖼️ UI Preview
 
-![App Screenshot](public\Screenshot.png)
+![App Screenshot](public/Screenshot.png)
 
 ---
 
