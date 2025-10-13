@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Play, Pause, Square, Volume2, Settings, Download } from 'lucide-react';
+import './index.css';
 
 export default function KokoroTTS() {
   // Text input state
@@ -12,7 +13,7 @@ export default function KokoroTTS() {
   const [duration, setDuration] = useState(0);
 
   // TTS configuration state
-  const [serverUrl, setServerUrl] = useState('http://localhost:50021');
+  const [serverUrl, setServerUrl] = useState('http://localhost:8880');
   const [voice, setVoice] = useState('af_sky');
   const [speed, setSpeed] = useState(1.0);
 
@@ -66,14 +67,16 @@ export default function KokoroTTS() {
       }
 
       // Call kokoro TTS API with text and config
-      const response = await fetch(`${serverUrl}/api/tts`, {
+      const response = await fetch(`${serverUrl}/v1/audio/speech`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          text: text,
+          model: "kokoro",
+          input: text,
           voice: voice,
+          response_format: "wav",
           speed: speed,
         }),
       });
@@ -155,6 +158,15 @@ export default function KokoroTTS() {
     setCurrentTime(newTime);
   };
 
+  // Download the generated audio file
+  const downloadAudio = () => {
+    if (!audioUrlRef.current) return;
+    const a = document.createElement('a');
+    a.href = audioUrlRef.current;
+    a.download = 'speech.wav';
+    a.click();
+  };
+
   // Format seconds to MM:SS display format
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -185,7 +197,7 @@ export default function KokoroTTS() {
               value={text}
               onChange={(e) => setText(e.target.value)}
               placeholder="Type or paste your text here..."
-              className="w-full h-40 border-gray-200 rounded-lg focus:border-purple-500 focus:outline-none resize-none text-gray-800" />
+              className="w-full h-40 border border-gray-200 rounded-lg focus:border-purple-500 focus:outline-none resize-none text-gray-800" />
             <div className="text-right text-sm text-gray-500 mt-1">
               {text.length} characters
             </div>
@@ -262,6 +274,7 @@ export default function KokoroTTS() {
                 </label>
                 <input 
                   type="range"
+                  title='speed'
                   min="0.5"
                   max="2.0"
                   step="0.1"
@@ -274,14 +287,64 @@ export default function KokoroTTS() {
           )}
 
           {/* Audio Player */}
+          {audioRef.current && (
+            <div className="p-4 bg-gradient-to-r from-purple-100 to-blue-100 rounded-lg">
+              <div className="flex items-center gap-4 mb-4">
+                <button
+                  onClick={togglePlayPause}
+                  className="p-3 bg-white hover:bg-gray-50 rounded-full shadow-md transition-colors"
+                >
+                  {isPlaying ? (
+                    <Pause className="w-6 h-6 text-purple-600" />
+                  ):(
+                    <Play className="w-6 h-6 text-purple-600" />
+                  )}
+                </button>
+                <button
+                  onClick={stopAudio}
+                  title='Stop Audio'
+                  className="p-3 bg-white hover:bg-gray-50 rounded-full shadow-md transition-colors">
+                    <Square className="w-6 h-6 text-purple-600" />
+                  </button>
+                <button
+                  onClick={downloadAudio}
+                  className="p-3 bg-white hover:bg-gray-50 rounded-full shadow-md transition-colors"
+                  title="Download Audio">
+                    <Download className="w-6 h-6 text-purple-600" />
+                  </button>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <span className="text-sm font-medium text-gray-700 min-w-[40px]">
+                  {formatTime(currentTime)}
+                </span>
+                <input
+                  type="range"
+                  title='seek'
+                  min="0"
+                  max={duration || 0}
+                  step="0.1"
+                  value={currentTime}
+                  onChange={handleSeek}
+                  className="flex-1"
+                />
+                <span className="text-sm font-medium text-gray-700 min-w-[40px]">{formatTime(duration)}</span>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Instructions */}
+        <div className="bg-white rounded-xl shadow-md p-6">
+          <h3 className="font-semibold text-gray-800 mb-3">Setup Instructions</h3>
+          <ol className="list-decimal list-inside space-y-2 text-sm text-gray-600">
+            <li>Make sure your kokoro server is running on your local machine</li>
+            <li>Update the Server URL in settings if your server uses a different port</li>
+            <li>Your server should have a POST endpoint at <code className="bg-gray-100 px-1 py-0.5 rounded">/api/tts</code> that accepts JSON with text, voice, and speed parameters</li>
+            <li>The endpoint should return audio data (WAV format recommended)</li>
+          </ol>
         </div>
       </div>
     </div>
-  );
-}
-
-export function App() {
-  return (
-    <KokoroTTS />
   );
 }
