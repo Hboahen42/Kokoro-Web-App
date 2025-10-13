@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Play, Pause, Square, Volume2, Settings, Download } from 'lucide-react';
+import { Play, Pause, Square, Volume2, Settings, Download, Upload, X } from 'lucide-react';
 import './index.css';
 
 export default function KokoroTTS() {
@@ -21,9 +21,10 @@ export default function KokoroTTS() {
   const [showSettings, setShowSettings] = useState(false);
   const [error, setError] = useState('');
 
-  // Refs to store audio element and blob URL
+  // Refs to store audio and file element and blob URL
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const audioUrlRef =  useRef<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   // Common Kokoro TTS voices
   const voices = [
