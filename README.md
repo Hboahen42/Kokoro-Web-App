@@ -1,73 +1,127 @@
-# React + TypeScript + Vite
+# 🎙️ Kokoro TTS Web App
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Convert text into **natural-sounding speech** using the **Kokoro Text-to-Speech (TTS)** engine.  
+This web app provides a simple, elegant interface built with **React + TypeScript + TailwindCSS**, allowing you to send text to your local Kokoro TTS API and instantly generate audio output.
 
-Currently, two official plugins are available:
+---
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## 🚀 Features
 
-## React Compiler
+- 🎧 Real-time text-to-speech conversion  
+- 🧠 Connects directly to your Kokoro TTS server  
+- ⚡ Built with React + TypeScript + TailwindCSS  
+- 🎨 Minimal and responsive UI  
+- 💾 Exports audio in WAV format  
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+---
 
-## Expanding the ESLint configuration
+## 🛠️ Setup
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+### 1. Clone the repository
+```bash
+git clone https://github.com/yourusername/kokoro-tts-web.git
+cd kokoro-tts-web
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+### 2. Install dependencies
+```bash
+npm install
 ```
+
+### 3. Install and configure TailwindCSS
+If not already set up:
+```bash
+npm install -D tailwindcss postcss autoprefixer
+npx tailwindcss init -p
+```
+
+Then in your `src/index.css`:
+```css
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+```
+
+---
+
+## 🧩 Running the App
+
+Start the development server:
+```bash
+npm run dev
+```
+
+Then open [http://localhost:5173](http://localhost:5173) in your browser.
+
+---
+
+## 🔗 Connecting to Kokoro TTS
+
+Make sure your **Kokoro TTS server** is running locally.
+
+Default endpoint:
+```
+POST http://localhost:8880/v1/audio/speech
+```
+
+Example JSON payload:
+```json
+{
+  "model": "kokoro",
+  "input": "Hello from Kokoro",
+  "voice": "af_sky",
+  "response_format": "wav",
+  "speed": 1.0
+}
+```
+
+Returned output should be audio data (WAV recommended).
+
+---
+
+## 🧱 Folder Structure
+
+```
+kokoro-tts-web/
+├── src/
+│   ├── App.tsx          # Main React component
+│   ├── index.tsx        # Entry point
+│   ├── index.css        # Tailwind styles
+│   └── components/      # UI components
+├── public/
+│   └── favicon.ico
+├── package.json
+├── tailwind.config.js
+└── README.md
+```
+
+---
+
+## 🖼️ UI Preview
+
+![App Screenshot](public\Screenshot.png)
+
+---
+
+## ⚙️ Requirements
+
+- Node.js ≥ 18  
+- npm ≥ 9  
+- Kokoro TTS server running locally  
+
+---
+
+## 🤝 Contributing
+
+Pull requests are welcome!  
+If you find bugs or have ideas for improvement, open an issue or PR.
+
+---
+
+## 📜 License
+
+This project is licensed under the [MIT License](LICENSE).
+
+---
+
+**Built with ❤️ by Humphrey Boahen**
