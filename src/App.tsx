@@ -1,35 +1,287 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import React, { useState, useRef, useEffect } from 'react';
+import { Play, Pause, Square, Volume2, Settings, Download } from 'lucide-react';
 
-function App() {
-  const [count, setCount] = useState(0)
+export default function KokoroTTS() {
+  // Text input state
+  const [text, setText] = useState('');
+
+  // Audio playback state
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+
+  // TTS configuration state
+  const [serverUrl, setServerUrl] = useState('http://localhost:50021');
+  const [voice, setVoice] = useState('af_sky');
+  const [speed, setSpeed] = useState(1.0);
+
+  // UI state
+  const [showSettings, setShowSettings] = useState(false);
+  const [error, setError] = useState('');
+
+  // Refs to store audio element and blob URL
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const audioUrlRef =  useRef<string | null>(null);
+
+  // Common Kokoro TTS voices
+  const voices = [
+    { id: 'af_sky', name: 'Sky (Female)'},
+    { id: 'af_bella', name: 'Bella (Female)'},
+    { id: 'af_sarah', name: 'Sarah (Female)'},
+    { id: 'am_adam', name: 'Adam (Male)'},
+    { id: 'am_michael', name: 'Michael (Male)'},
+    { id: 'bf_emma', name: 'Emma (British Female)'},
+    { id: 'bm_george', name: 'George (British Male)'},
+  ];
+
+  //Cleanup audio blob URL on component unmount to prevent memory leaks
+  useEffect(() => {
+    return () => {
+      if (audioUrlRef.current) {
+        URL.revokeObjectURL(audioUrlRef.current);
+      }
+    }
+  }, []);
+
+  // Main function to generate speech from text
+  const generateSpeech = async () => {
+    // Validate that text is not empty
+    if (!text.trim()) {
+      setError('Please enter some text');
+      return;
+    }
+
+    setIsLoading(true);
+    setError('');
+
+    try {
+      // Clean up previous audio to free memory
+      if (audioUrlRef.current) {
+        URL.revokeObjectURL(audioUrlRef.current);
+      }
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+
+      // Call kokoro TTS API with text and config
+      const response = await fetch(`${serverUrl}/api/tts`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          text: text,
+          voice: voice,
+          speed: speed,
+        }),
+      });
+
+      //Check if request was successful
+      if (!response.ok) {
+        throw new Error(`Server error: ${response.status}`);
+      }
+
+      // Convert response to blob and create object URL
+      const audioBlob = await response.blob();
+      const audioUrl = URL.createObjectURL(audioBlob);
+      audioUrlRef.current = audioUrl;
+
+      // Create new audio element and setup event listeners
+      const audio = new Audio(audioUrl);
+      audioRef.current = audio;
+
+      // Update duration when audio metadata is loaded
+      audio.addEventListener('loadedmetadata', () => {
+        setDuration(audio.duration);
+      });
+
+      // Update current time as audio plays
+      audio.addEventListener('timeupdate',  () => {
+        setCurrentTime(audio.currentTime);
+      });
+
+      // Reset playback state when audio finishes playing
+      audio.addEventListener('ended', () => {
+        setIsPlaying(false);
+        setCurrentTime(0);
+      });
+
+      // Handle audio playback errors
+      audio.addEventListener('error', () => {
+        setError('Error playing audio');
+        setIsPlaying(false);
+      });
+
+      // Automatically start playing the generated audio
+      await audio.play();
+      setIsPlaying(true);
+
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to generate speech');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Toggle between play and pause
+  const togglePlayPause = () => {
+    if (!audioRef.current) return;
+
+    if (isPlaying) {
+      audioRef.current.pause();
+      setIsPlaying(false);
+    } else {
+      audioRef.current.play();
+      setIsPlaying(true);
+    }
+  };
+
+  // stop audio and reset to beginning
+  const stopAudio = () => {
+    if (!audioRef.current) return;
+    audioRef.current.pause();
+    audioRef.current.currentTime = 0;
+    setIsPlaying(false);
+    setCurrentTime(0);
+  };
+
+  //Handle seeking to different position in audio
+  const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!audioRef.current) return;
+    const newTime = parseFloat(e.target.value);
+    audioRef.current.currentTime = newTime;
+    setCurrentTime(newTime);
+  };
+
+  // Format seconds to MM:SS display format
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${secs.toString().padStart(2,'0')}`;
+  };
 
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 p-4">
+      <div className="max-w-4xl mx-auto">
+        {/* Header */}
+        <div className="text-center mb-8 pt-8">
+          <div className="flex items-center justify-center gap-3 mb-2">
+            <Volume2 className="w-10 h-10 text-purple-600" />
+            <h1 className="text-4xl font-bold text-gray-800">Kokoro TTS</h1>
+          </div>
+          <p className="text-gray-600">Convert text to natural speech</p>
+        </div>
+
+        {/* Main Card */}
+        <div className="bg-white rounded-2xl shadow-xl p-6 mb-8">
+          {/* Text Input */}
+          <div className="mb-6">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Enter Text
+            </label>
+            <textarea
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              placeholder="Type or paste your text here..."
+              className="w-full h-40 border-gray-200 rounded-lg focus:border-purple-500 focus:outline-none resize-none text-gray-800" />
+            <div className="text-right text-sm text-gray-500 mt-1">
+              {text.length} characters
+            </div>
+          </div>
+
+          {/* Error Message*/}
+          {error && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounder-lg text-red-700 text-sm">
+              {error}
+            </div>
+          )}
+
+          {/* Controls */}
+          <div className="flex gap-3 mb-4">
+            <button
+              onClick={generateSpeech}
+              disabled={isLoading || !text.trim()}
+              className="flex-1 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-300 text-white font-semibold py-3 px-6 rounded-lg transition-colors flex items-center justify-center gap-2">
+                {isLoading ? (
+                  <>
+                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    Generating...
+                  </>
+                ): (
+                  <>
+                  <Volume2 className="w-5 h-5" />
+                  </>
+                )}
+              </button>
+              <button onClick={() => setShowSettings(!showSettings)}
+                className="p-3 border-2 border-gray-200 hover:border-purple-500 rounded-lg transition-colors"
+                title="Settings">
+                <Settings className="w-6 h-6 text-gray-600" />
+              </button>
+          </div>
+
+          {/* Settings Panel */}
+          {showSettings && (
+            <div className="mb-6 p-4 bg-gray-40 rounded-lg border-2 border-gray-200">
+              <h3 className="font-semibold text-gray-700  mb-4">Settings</h3>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Server URL
+                </label>
+                <input 
+                  type="text"
+                  value={serverUrl}
+                  onChange={(e) => setServerUrl(e.target.value)}
+                  className="w-full p-2 border-2 border-gray-200 rounded-lg focus:border-purple-500 focus:outline-none text-gray-800"
+                  placeholder="http://localhost:8000"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Voice
+                </label>
+                <select
+                  value={voice}
+                  title='voices'
+                  onChange={(e) => setVoice(e.target.value)}
+                  className="w-full p-2 border-2 border-gray-200 rounded-lg focus:border-purple-500 focus:outline-none text-gray-800">
+                  {voices.map((v) => (
+                    <option key={v.id} value={v.id}>
+                      {v.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Speed: {speed.toFixed(1)}x
+                </label>
+                <input 
+                  type="range"
+                  min="0.5"
+                  max="2.0"
+                  step="0.1"
+                  value={speed}
+                  onChange={(e) => setSpeed(parseFloat(e.target.value))}
+                  className="w-full"
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Audio Player */}
+        </div>
       </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+    </div>
+  );
 }
 
-export default App
+export function App() {
+  return (
+    <KokoroTTS />
+  );
+}
